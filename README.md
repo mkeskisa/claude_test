@@ -3,6 +3,7 @@
 A small R project for learning database queries with synthetic healthcare data.
 It creates a real SQLite database with seven OMOP-style tables, demonstrates
 SQL and `dbplyr` queries, and calculates prevalence and drug-use summaries.
+An optional Python agent can use the same database through MCP; see section 9.
 
 **Start with sections 1-5 below. MCP is optional.** The main instructions use
 Windows and RStudio. The R scripts also use portable paths; terminal commands
@@ -19,8 +20,9 @@ or a source of clinical evidence.
 | RStudio Desktop | Recommended interface for R | Install after R in section 1. |
 | Five R packages | Database access, queries, and tests | Install together in section 3. |
 | SQLite | Storing the data | Included in RSQLite; the database file is created automatically. |
-| Python 3.11 or newer | Optional MCP server only | Install in section 8 if you want AI-assisted queries. Tested with Python 3.12. |
+| Python 3.11 or newer | Optional MCP server and agent example | Install in section 8 if you want AI-assisted queries. Tested with Python 3.12. |
 | Codex CLI | Optional MCP registration using the supplied script | Install in section 8. The npm installation method also needs Node.js/npm. |
+| OpenAI Agents SDK and API key | Optional standalone AI agent | Section 9; the local demo needs no API key. Codex is not required for this example. |
 | Git | Optional way to download the repository | A repository ZIP download also works. |
 
 Internet access is needed to download software and packages. After setup, the
@@ -401,6 +403,173 @@ Windows is the tested platform for this project. A Linux distribution may
 provide `venv` as a separate OS package; install it if `python3 -m venv`
 reports it missing.
 
+## 9. Optional: Build Your Own Agent Using MCP
+
+MCP is the tool connection, not the AI itself. The MCP server exposes database
+tools; an agent combines a model, instructions, and a loop that calls those
+tools until it can answer a question. This example uses the
+[OpenAI Agents SDK](https://developers.openai.com/api/docs/guides/agents/quickstart).
+
+```text
+Your question -> Python agent <-> OpenAI model (internet)
+                     |
+                     | local MCP over stdio
+                     v
+              mcp_sqlite/server.py -> outputs/omop.sqlite (read-only)
+```
+
+The agent runs on your computer and starts the existing MCP server as a child
+process. The SDK passes the tools to the model, executes its tool requests
+locally, and sends results back for the next reasoning step. It closes the
+server when finished. No public server, HTTP endpoint, database upload, Codex
+registration, or running RStudio session is needed. This uses
+[SDK-managed local MCP](https://developers.openai.com/api/docs/guides/agents/integrations-observability),
+not a remotely hosted MCP service.
+
+### Install the Optional Agent Dependencies
+
+Complete sections 1-4 to create the database. Install Python as described in
+section 8, but skip Codex/Node.js and registration if you only want this agent.
+From the project root in **PowerShell**:
+
+```powershell
+# Only create this environment if you have not already created it in section 8.
+python -m venv .venv-mcp
+
+# Installs the agent SDK and the existing MCP server's requirements.
+.\.venv-mcp\Scripts\python.exe -m pip install -r examples/requirements-agent.txt
+```
+
+The agent is in [`examples/mcp_agent.py`](examples/mcp_agent.py). The R workflow
+does not depend on these additional packages. You do not need to start
+`server.py` yourself or change the MCP registration from section 8.
+
+### First Test Locally, Without a Key or API Charges
+
+```powershell
+.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --demo
+```
+
+This mode runs predefined SQL through the real MCP connection. It lists tables,
+inspects the three required schemas, and prints JSON containing the SQL, bound
+parameters, and results. **It does not call an AI model or interpret new questions.**
+Once dependencies and the database exist, this mode works without internet access.
+
+For the unchanged default mock data, expect:
+
+| Calculation | Result |
+| --- | --- |
+| Recorded hypertension, all patients | 76 / 250 = 30.4% |
+| Recorded hypertension, Black male patients | 6 / 14 = 42.9% |
+| Black male hypertension cohort | 6 patients |
+| Most recorded drug in that cohort | Lisinopril: 5 exposures, 5 patients, 83.3% of the cohort |
+
+The cohort also has Metformin (2 exposures), Sertraline (2), and Albuterol (1).
+These are all drugs recorded for the cohort, not necessarily hypertension
+treatments. Drug percentages can sum to more than 100% because a patient can
+have multiple drugs. Edited data or a different random seed will change results.
+
+### Run the AI Agent
+
+For natural-language questions, you need an OpenAI Platform API key with access
+to the selected model and available API quota/billing. Follow the API key setup
+in the [official quickstart](https://developers.openai.com/api/docs/guides/agents/quickstart).
+The script does not use your Codex sign-in. Model calls can incur API charges;
+check your API account's limits before running it.
+
+Use a hidden prompt so the key is not stored in a script or PowerShell history:
+
+```powershell
+.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --ask-key
+```
+
+The key is held only in this Python process. Alternatively, the script reads an
+existing `OPENAI_API_KEY` environment variable. It does not load `.env` or
+`.Renviron` files automatically. Never paste a real key into source code, a
+README, a commit, or a chat message.
+
+By default, the agent asks the model to calculate the same prevalence and drug
+ranking as the demo. Unlike `--demo`, **the model chooses tools and writes its own
+SQL**. The script prints the executed MCP calls and the model's answer. Compare
+its numbers with the deterministic demo; generated SQL and explanations can
+still be wrong.
+
+Ask a different question:
+
+```powershell
+.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --ask-key --question "Calculate hypertension prevalence by gender. Show the numerator and denominator for every group."
+```
+
+The example defaults to
+[`gpt-4.1-mini`](https://developers.openai.com/api/docs/models/gpt-4.1-mini).
+Use `--model` or `OPENAI_MODEL` to select another tool-capable OpenAI model your
+API project can access. Each invocation is a new conversation; it does not
+remember a previous invocation.
+
+```powershell
+.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --ask-key --model gpt-4.1-mini --max-turns 12
+.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --help
+```
+
+`--max-turns` bounds model turns, not total dollars or exact tool-call count.
+The script also caps model output tokens per turn. Use `--db 'C:/path/to/example.sqlite'`
+for another compatible **synthetic** database; otherwise it locates this project's
+`outputs/omop.sqlite` relative to the script, independent of the terminal directory.
+
+### How to Adapt It
+
+The important pieces in `examples/mcp_agent.py` are:
+
+- `INSTRUCTIONS` defines the analyst's role, schema-discovery steps, counting rules, and interpretation limits.
+- `open_server()` launches the existing read-only server with the same Python executable and allows only its three database tools.
+- `run_agent()` constructs `Agent(..., mcp_servers=[server])` and calls `Runner.run(...)` to handle the model/tool loop.
+- `DEFAULT_QUESTION` is the question used when `--question` is omitted.
+- `run_demo()` and the reference SQL provide a deterministic comparison, not the live agent's query planner.
+
+To create a different analyst, change the instructions and default question,
+or import and reuse `open_server()` and `run_agent()` in your own application.
+For repeatable production calculations, prefer reviewed SQL or dedicated
+aggregate tools rather than relying on unconstrained model-generated SQL.
+
+### Privacy, Permissions, and Testing
+
+In live mode, your question, tool schemas, generated SQL, and returned query
+results are sent to OpenAI. Keeping SQLite local does **not** keep those results
+local. Use only the synthetic teaching data with this example. Do not point it
+at real patient records, credentials, or other confidential data without the
+necessary approvals and data controls.
+
+SDK tracing is disabled and model response storage is requested off
+(`store=False`); these are not a guarantee of zero provider retention or no
+network transfer. The API key is not passed to the MCP child process. Read-only
+access is enforced by the existing server, not just the agent prompt. The agent
+has no shell or write tools, but read-only SQL is **not** an aggregate-only or
+patient-level privacy boundary. Instructions to prefer aggregates are guidance,
+not a technical access restriction.
+
+Run the optional example's tests without an API key:
+
+```powershell
+.\.venv-mcp\Scripts\python.exe -m unittest discover -s examples -p test_mcp_agent.py -v
+```
+
+Tests use temporary databases and a scripted model with the real SDK agent loop
+and MCP subprocess. They check duplicate diagnoses, prevalence denominators,
+patients without drugs, empty cohorts, read-only access, missing keys, truncation,
+and the turn limit. They do not test a live model's answer quality or incur API
+charges, and they do not modify your generated database.
+
+On **macOS/Linux**, use these equivalents from the project root:
+
+```bash
+# Only create the environment if it does not already exist.
+python3 -m venv .venv-mcp
+.venv-mcp/bin/python -m pip install -r examples/requirements-agent.txt
+.venv-mcp/bin/python examples/mcp_agent.py --demo
+.venv-mcp/bin/python examples/mcp_agent.py --ask-key
+.venv-mcp/bin/python -m unittest discover -s examples -p test_mcp_agent.py -v
+```
+
 ## Troubleshooting
 
 | Symptom | What to check |
@@ -417,6 +586,10 @@ reports it missing.
 | MCP server says database not found | Create it with `source("run_me.R")`; rerun registration if the project moved. |
 | MCP registered but tools are absent | Confirm `codex mcp get omop-sqlite`, restart MCP servers, and try a new local session. |
 | MCP returns `not authorized` for a write | Access is intentionally read-only. Use the R/DBI connection for edits. |
+| Agent says to install optional dependencies or `No module named agents` | Install `examples/requirements-agent.txt` with the same `.venv-mcp` Python used to run the script. |
+| Agent says `No OPENAI_API_KEY` | Use `--ask-key` in an interactive terminal, or use `--demo` without a key. Codex sign-in is not an API key. |
+| Agent says `OpenAI request failed` | Check the key's API project, billing/quota, model access, and network connection. Try `--demo` to isolate database/MCP issues from API issues. |
+| Agent reaches `--max-turns` | Ask a narrower question or deliberately increase the limit; additional turns may cost more. |
 
 If Windows PowerShell blocks `register.ps1` or the npm-provided `codex.ps1`,
 you can use the npm command shim and register directly from the project root:
@@ -446,6 +619,9 @@ report no failures; update/reinstall the affected package if necessary.
 | `db/connection.R` | SQLite connection helpers. |
 | `tests/` | R tests using isolated databases. |
 | `mcp_sqlite/` | Optional Python MCP server, tests, and registration script. |
+| `examples/mcp_agent.py` | Standalone MCP agent and no-key, fixed-query demo. |
+| `examples/requirements-agent.txt` | Optional agent SDK and MCP dependencies. |
+| `examples/test_mcp_agent.py` | Agent/MCP integration and calculation tests; no API calls. |
 | `outputs/` | Generated database and summary files, ignored by Git. |
 | `.venv-mcp/` | Generated Python environment, ignored by Git. |
 
@@ -461,7 +637,9 @@ runs of `run_me.R` do not do this. Keep a separate copy of the SQLite file
 if you want to preserve edits before regenerating.
 
 R dependencies are listed in `DESCRIPTION` but are not version-locked.
-The MCP SDK version is pinned in `mcp_sqlite/requirements.txt`; its transitive
-dependencies are resolved during installation. `.Renviron` and `.env` files
-are ignored by Git and are not needed for this SQLite example.
+The MCP SDK version is pinned in `mcp_sqlite/requirements.txt`; the optional
+Agents SDK is pinned in `examples/requirements-agent.txt`. Transitive dependencies
+are resolved during installation. `.Renviron` and `.env` files are ignored by
+Git and are not needed for the R/SQLite example or the local agent demo. Live
+agent mode needs an API key supplied at runtime, never committed to the repository.
 
