@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.aider*
+.Renviron
+.env
+.env.*
+/outputs/
+/.venv-mcp/
+__pycache__/
+*.pyc

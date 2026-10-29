@@ -1,0 +1,10 @@
+Package: omop-dbplyr-test
+Title: OMOP Database Testing with dbplyr
+Version: 0.1.0
+Authors@R: person("Developer", "Name", email = "developer@example.com", role = c("aut", "cre"))
+Description: Test dbplyr package functionality with OMOP Common Data Model.
+License: MIT
+Imports: DBI, RSQLite, dbplyr, dplyr, testthat
+Suggests: testthat
+Encoding: UTF-8
+RoxygenNote: 7.2.3
