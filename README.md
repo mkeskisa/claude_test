@@ -1,645 +1,180 @@
-# OMOP Database Testing Project
+# OMOP Clinical Data Example
 
-A small R project for learning database queries with synthetic healthcare data.
-It creates a real SQLite database with seven OMOP-style tables, demonstrates
-SQL and `dbplyr` queries, and calculates prevalence and drug-use summaries.
-An optional Python agent can use the same database through MCP; see section 9.
+Learn SQL and database analysis with 250 synthetic patients in a local SQLite
+database. Use RStudio for SQL, or chat with Codex as a read-only data analyst.
+This is a simplified OMOP-style teaching dataset, not clinical evidence.
 
-**Start with sections 1-5 below. MCP is optional.** The main instructions use
-Windows and RStudio. The R scripts also use portable paths; terminal commands
-for macOS/Linux are noted separately.
+## 1. Install and Run
 
-This is a simplified teaching dataset, not a complete OMOP CDM implementation
-or a source of clinical evidence.
-
-## What You Need
-
-| Component | Needed for | How to get it |
-| --- | --- | --- |
-| R | Running the project | Install R in section 1. |
-| RStudio Desktop | Recommended interface for R | Install after R in section 1. |
-| Five R packages | Database access, queries, and tests | Install together in section 3. |
-| SQLite | Storing the data | Included in RSQLite; the database file is created automatically. |
-| Python 3.11 or newer | Optional MCP server and agent example | Install in section 8 if you want AI-assisted queries. Tested with Python 3.12. |
-| Codex CLI | Optional MCP registration using the supplied script | Install in section 8. The npm installation method also needs Node.js/npm. |
-| OpenAI Agents SDK and API key | Optional standalone AI agent | Section 9; the local demo needs no API key. Codex is not required for this example. |
-| Git | Optional way to download the repository | A repository ZIP download also works. |
-
-Internet access is needed to download software and packages. After setup, the
-R example and database work locally. Codex requires its own sign-in and network
-access for AI-assisted queries.
-
-There is no PostgreSQL service to install, no Docker setup, and no database
-username or password. [RSQLite embeds the SQLite engine](https://rsqlite.r-dbi.org/)
-inside the R package.
-
-## 1. Install R and RStudio
-
-1. Download and install R for your operating system from [CRAN](https://cran.r-project.org/). Windows users can use the [Windows installer](https://cran.r-project.org/bin/windows/base/). Choose a current supported release; the project has been tested with R 4.4.1.
-2. Download and install [RStudio Desktop](https://docs.posit.co/ide/user/download.html).
-3. Open RStudio. In its **Console** pane, run:
+1. Install [R](https://cran.r-project.org/) and then [RStudio Desktop](https://docs.posit.co/ide/user/download.html).
+2. Download or clone [this repository](https://github.com/mkeskisa/claude_test), extract it into a writable folder, and open `claude_test.Rproj` in RStudio.
+3. Run the following in the **R Console**, not the Terminal:
 
 ```r
-R.version.string
-```
-
-You should see an R version. R is the language/runtime; RStudio is the editor
-that runs it. Installing RStudio alone does not complete the R setup.
-
-Throughout this guide, blocks marked `r` go in the **R Console**.
-Blocks marked `powershell` go in **Windows PowerShell**, including RStudio's
-Terminal pane when it is running PowerShell. Do not paste terminal commands
-into the R Console.
-
-## 2. Download and Open the Project
-
-Download the complete repository as a ZIP and extract it into a folder you
-can write to, or clone it with Git. Keep the whole directory structure, including
-`R/`, `db/`, `tests/`, and `mcp_sqlite/`.
-
-In RStudio, use **File > Open Project** and select `claude_test.Rproj` from
-the extracted folder. Check the location in the R Console:
-
-```r
-getwd()
-file.exists("run_me.R")
-```
-
-The second command must return `TRUE`. The working directory must be the
-project root: the folder containing `run_me.R` and `README.md`.
-
-If you are using R without RStudio, set the directory yourself, replacing
-this example path with your actual project folder:
-
-```r
-setwd("C:/path/to/claude_test")
-```
-
-This project is run as scripts. Use the Console or the editor's **Source**
-button; you do not need RStudio's Build/Install workflow.
-
-## 3. Install the R Packages
-
-Run this once in the **R Console**:
-
-```r
+# Install once. Accept a personal library if prompted.
 install.packages(
   c("DBI", "RSQLite", "dbplyr", "dplyr", "testthat"),
   repos = "https://cloud.r-project.org"
 )
-```
 
-R also installs the dependencies required by these packages. If R asks to
-create a personal package library, accept it. On Windows, prefer binary
-packages if asked whether to compile newer packages from source.
-
-| Package | Purpose |
-| --- | --- |
-| `DBI` | Opens database connections and runs SQL. |
-| `RSQLite` | Supplies the SQLite engine and DBI driver. |
-| `dbplyr` | Translates R data manipulation into SQL. |
-| `dplyr` | Provides filtering, joins, and summaries. |
-| `testthat` | Runs the checks included in `run_me.R`. |
-
-Verify the installation from the project root:
-
-```r
-source("R/config.R")
-check_packages()
-```
-
-Success returns to the prompt without an error. The scripts check dependencies
-but do not install packages automatically. You do not need `tidyverse` or
-`devtools` for the main example; `R/means_one.R` is a separate, unused
-scratch example.
-
-## 4. Create the Database and Run the Example
-
-In the **R Console**:
-
-```r
+# Run whenever you start a new R session.
 source("run_me.R")
-```
-
-On the first run, the script:
-
-1. Creates `outputs/omop.sqlite` and the seven example tables.
-2. Populates an empty database with 250 reproducible mock patients and related records.
-3. Prints a prevalence summary and runs the R tests.
-4. Leaves the database connection in an R object called `con`, ready for your queries.
-
-No separate SQLite installer, SQL import, or database download is needed.
-The `outputs/` folder and database file are generated locally and are ignored
-by Git, so their absence after downloading the repository is expected.
-
-Check that the setup worked:
-
-```r
-DBI::dbIsValid(con)
-DBI::dbListTables(con)
 DBI::dbGetQuery(con, "SELECT COUNT(*) AS patients FROM patient")
 ```
 
-For a fresh database, expect `TRUE`, seven table names, and a patient count
-of `250`. The test report should show zero failures and zero skips.
+Expect **250 patients** and passing tests. The script creates
+`outputs/omop.sqlite`, populates seven tables, and leaves `con` open for queries.
+Rerunning preserves existing data. SQLite is included in RSQLite: **no PostgreSQL,
+Docker, database download, username, or password is needed**.
+After installation, the R workflow works offline.
 
-| Table | Fresh mock dataset rows |
-| --- | ---: |
-| `patient` | 250 |
-| `visit_occurrence` | 702 |
-| `condition_occurrence` | 266 |
-| `drug_exposure` | 220 |
-| `procedure_occurrence` | 228 |
-| `observation` | 500 |
-| `measurement` | 500 |
+## 2. Query in RStudio
 
-Tables are linked by `subject_id`. Dates are stored as ISO text
-(`YYYY-MM-DD`), and timestamps use UTC.
-
-Rerunning `run_me.R` reopens or reuses the connection and preserves existing
-rows and edits. It only generates mock data when all example tables are empty.
-
-## 5. Query the Data Yourself
-
-After running `run_me.R`, try these commands in the **same R Console**:
+In the same **R Console**:
 
 ```r
-# Inspect records and column names.
-DBI::dbGetQuery(con, "SELECT * FROM patient LIMIT 10")
+DBI::dbListTables(con)
 DBI::dbListFields(con, "condition_occurrence")
-
-# Calculate recorded condition prevalence in this sample.
 DBI::dbGetQuery(con, "
-  SELECT condition_concept_id,
-    MIN(condition_source_value) AS condition,
-    COUNT(DISTINCT subject_id) AS patients,
-    ROUND(
-      100.0 * COUNT(DISTINCT subject_id) /
-      (SELECT COUNT(*) FROM patient), 1
-    ) AS prevalence_percent
-  FROM condition_occurrence
-  GROUP BY condition_concept_id
-  ORDER BY prevalence_percent DESC
+  SELECT gender, COUNT(DISTINCT subject_id) AS patients
+  FROM patient GROUP BY gender
 ")
 
-# Run a dbplyr query and bring its results back into R.
-omop_patient(con) |>
-  dplyr::filter(year_of_birth < 1960) |>
-  dplyr::collect()
-```
-
-For the worked example selecting Black male patients with hypertension and
-ranking their recorded drug exposures, run:
-
-```r
+# Worked example: Black male patients with hypertension and their drug use.
 source("sandbox_for_the_dummy.R")
-hypertension_patients
 drug_usage
-```
 
-This sandbox also runs `run_me.R`, so it can be used in a fresh R session.
-The hypertension concept used in this example is `319835`. Drug rankings
-count exposure records and distinct patients; they do not measure dose or
-treatment duration.
+# Export prevalence and utilization summaries to outputs/analysis/.
+source("run_analysis.R")
 
-When finished querying:
-
-```r
+# When finished. Run source("run_me.R") to reconnect later.
 close_connection(con)
 ```
 
-To reconnect in the same session, run `con <- create_connection()`.
-After restarting RStudio, run `source("run_me.R")` again. A restored R workspace
-does not restore a live database connection.
+Tables are `patient`, `visit_occurrence`, `condition_occurrence`, `drug_exposure`,
+`procedure_occurrence`, `observation`, and `measurement`; join them on
+`subject_id`. Records cover 2024-2025. Condition `319835` means hypertension
+**in this example**. Prevalence counts distinct patients, including patients
+without diagnoses in the denominator. Drug exposure counts are not dose or duration.
 
-## 6. Generate Summary CSV Files
+## 3. Chat with the Analyst in Codex
 
-In the **R Console**, run:
+**Codex is the agent. You do not need a separate Python AI application.**
 
-```r
-source("run_analysis.R")
-```
+| Component | Purpose |
+| --- | --- |
+| Codex | Runs the conversation and chooses tools to answer your questions. |
+| [AGENTS.md](AGENTS.md) | Your analyst's role, analysis rules, and reporting instructions. |
+| `omop-sqlite` MCP server | Gives Codex read-only tools for the local database. |
 
-The script reads the same database and writes:
+`AGENTS.md` is a Markdown instruction file, not executable code. Codex
+[reads it when starting a session in this project](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+It does not install or connect MCP by itself. The old standalone SDK example
+has been removed; this approach uses your normal Codex sign-in, without an
+additional API key or Agents SDK.
 
-- `outputs/analysis/prevalence.csv`: overall condition prevalence.
-- `outputs/analysis/demographic_prevalence.csv`: prevalence by gender and age group.
-- `outputs/analysis/utilization.csv`: patient, visit, drug, and procedure summaries.
+### One-Time MCP Setup
 
-The results also remain in the R object `report`. This script creates and
-seeds the database if needed, uses its own connection, and leaves an existing
-`con` open. Rerunning it replaces the CSV summaries without replacing
-populated database tables.
+Skip this setup if `omop-sqlite` already works. First create the database in
+section 1. Install [Python 3.11+](https://www.python.org/downloads/) and the
+[Codex CLI](https://learn.chatgpt.com/docs/cli). For the npm installation below,
+install [Node.js LTS](https://nodejs.org/en/download) first.
 
-Prevalence uses distinct patients with a recorded condition divided by all
-patients in the sample, including those with no conditions. Demographic
-denominators include all patients in each group, including groups with zero
-cases. The generated records cover 2024-2025 and age groups use birth year
-at 2025. These are synthetic sample summaries, not population estimates.
-The example does not calculate incidence because it lacks observation
-periods and a disease-free baseline.
-
-## 7. Run from a Terminal or Run Tests Only
-
-The RStudio workflow above is sufficient. As an alternative, open a terminal
-in the project root and run:
+Run in **PowerShell** from the project folder, not in the R Console:
 
 ```powershell
-Rscript run_me.R
-Rscript run_analysis.R
-```
-
-On Windows, if `Rscript` is not on `PATH`, use its full installed path.
-Replace `R-<version>` with the folder name on your machine:
-
-```powershell
-& 'C:/Program Files/R/R-<version>/bin/Rscript.exe' run_me.R
-```
-
-A terminal `Rscript` process creates the database file, but its R objects do
-not appear in an already-open RStudio session. Use `source("run_me.R")` in
-RStudio when you want to continue querying with `con` there.
-
-To run only the R tests, use the **R Console** from the project root:
-
-```r
-testthat::test_dir("tests")
-```
-
-Tests use separate in-memory or temporary SQLite databases. They check SQL
-execution, persistence, table relationships, mock dates, prevalence, and CSV
-exports without changing your `outputs/omop.sqlite`.
-
-## 8. Optional: Query Through MCP in Codex
-
-Skip this section if you only want RStudio and SQL. Model Context Protocol
-(MCP) lets a compatible AI client call tools that inspect and query the
-database. This project's MCP server runs on your computer and reads the same
-SQLite file.
-
-### Install the Additional Software
-
-Install [Python](https://www.python.org/downloads/) 3.11 or newer, including
-`pip` and `venv`. Python 3.12 is the tested version. Open a new PowerShell
-window after installation and check:
-
-```powershell
-python --version
-python -m pip --version
-```
-
-If Windows cannot find `python`, check `py -3 --version`. You can use
-`py -3 -m venv .venv-mcp` instead of the `python -m venv` command below.
-
-You also need Codex access and the [Codex CLI](https://learn.chatgpt.com/docs/cli)
-for the supplied registration script. If `codex --version` already works,
-skip its installation. For the npm installation method, first install
-[Node.js LTS](https://nodejs.org/en/download), which includes npm, then run
-these **PowerShell** commands:
-
-```powershell
-node --version
-npm.cmd --version
+# Skip this installation if Codex CLI is already installed.
 npm.cmd install -g @openai/codex
-codex --version
-```
 
-Run `codex` once and complete its sign-in flow if you have not already done so.
-Node.js is only needed for this npm installation method; the SQLite MCP
-server itself runs in Python. The standalone CLI installation options are
-in the official Codex guide linked above.
-
-### Create the Python Environment
-
-Finish section 4 first so `outputs/omop.sqlite` exists. In **PowerShell**,
-switch to your project directory, replacing the example path:
-
-```powershell
+# Replace this path with your project folder.
 Set-Location 'C:\path\to\claude_test'
 python -m venv .venv-mcp
 .\.venv-mcp\Scripts\python.exe -m pip install -r mcp_sqlite/requirements.txt
-```
-
-This creates an isolated Python environment inside the project and installs
-the pinned MCP SDK plus its dependencies. It is separate from the R package
-library. No environment activation is needed because the commands use its
-Python executable directly.
-
-### Test and Register the Server
-
-Still in **PowerShell** at the project root:
-
-```powershell
-.\.venv-mcp\Scripts\python.exe -m unittest discover -s mcp_sqlite -p test_server.py -v
 .\.venv-mcp\Scripts\python.exe mcp_sqlite/check_connection.py
-.\mcp_sqlite\register.ps1
-codex mcp get omop-sqlite
+codex.cmd mcp add omop-sqlite -- "$PWD\.venv-mcp\Scripts\python.exe" "$PWD\mcp_sqlite\server.py" --db "$PWD\outputs\omop.sqlite"
+codex.cmd mcp get omop-sqlite
 ```
 
-The first command tests the connector using temporary databases. The second
-uses the actual MCP protocol against your existing database: expect
-`list_tables`, `describe_table`, and `query`, seven tables, and 250 patients
-if you have not changed the sample. Registration should report
-`enabled: true` and `transport: stdio`.
+The check should list three tools and seven tables; registration should show
+`enabled: true`. The CLI saves absolute paths in your local Codex configuration,
+not in the repository. Rerun registration if you move the project. Codex starts
+the server automatically; RStudio does not need to remain open.
+See the [MCP configuration guide](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
-The registration script uses `codex mcp add`. It writes the server command
-and absolute project paths to your user-level Codex configuration, normally
-`~/.codex/config.toml`; it is not stored in the repository. Rerun registration
-if you move the project or recreate the Python environment at another path.
-
-In the app's **Settings > MCP servers**, restart/reload the servers after
-registration. Start a new session if the tools are not yet visible. You can
-then ask:
-
-> Use omop-sqlite to list the tables.
-
-> Use omop-sqlite to find the most-used drugs among Black male patients with hypertension.
-
-Local stdio configuration requires a client running on the computer that
-can access this database; adding it does not make the file accessible to a
-separate web/cloud client. See the [official MCP configuration guide](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
-
-### Tools and Limits
-
-| Tool | Purpose |
-| --- | --- |
-| `list_tables()` | List user tables and views. |
-| `describe_table(name)` | Inspect columns, primary keys, and foreign keys. |
-| `query(sql, params, max_rows)` | Execute a read-only SELECT or CTE; bind values with `?` placeholders. |
-
-Queries return column names and row arrays. The default limit is 100 rows,
-with a maximum of 500 rows and approximately 100 KB of row data. Check
-`truncated` and narrow or page the SQL when needed. Queries have an
-approximately five-second execution limit.
-
-The server opens the file read-only for each call. Committed changes from
-RStudio appear on subsequent queries, and RStudio need not stay open.
-Writes, attaching other databases, arbitrary PRAGMAs, and extension loading
-are blocked. Query results are passed to the AI client; the server does not
-upload a separate database copy.
-
-To remove the connection while keeping the database and source files:
-
-```powershell
-codex mcp remove omop-sqlite
-```
-
-### macOS/Linux MCP Commands
-
-The R workflow is the same. After installing Python 3.11+ and Codex, use the
-following **shell** commands from the project root instead of the Windows
-environment and registration commands:
+On **macOS/Linux**, install Python and Codex, then use these commands instead:
 
 ```bash
 python3 -m venv .venv-mcp
 .venv-mcp/bin/python -m pip install -r mcp_sqlite/requirements.txt
-.venv-mcp/bin/python -m unittest discover -s mcp_sqlite -p test_server.py -v
 .venv-mcp/bin/python mcp_sqlite/check_connection.py
 codex mcp add omop-sqlite -- "$(pwd)/.venv-mcp/bin/python" "$(pwd)/mcp_sqlite/server.py" --db "$(pwd)/outputs/omop.sqlite"
 codex mcp get omop-sqlite
 ```
 
-Windows is the tested platform for this project. A Linux distribution may
-provide `venv` as a separate OS package; install it if `python3 -m venv`
-reports it missing.
+### Start a Conversation
 
-## 9. Optional: Build Your Own Agent Using MCP
+Open this project in Codex, sign in if needed, reload MCP servers if needed,
+and start a **new local chat** so the new `AGENTS.md` instructions are loaded.
+Alternatively, run `codex.cmd` (Windows) or `codex` (macOS/Linux) from the
+project directory. Ask normally; you do not need to mention MCP:
 
-MCP is the tool connection, not the AI itself. The MCP server exposes database
-tools; an agent combines a model, instructions, and a loop that calls those
-tools until it can answer a question. This example uses the
-[OpenAI Agents SDK](https://developers.openai.com/api/docs/guides/agents/quickstart).
+> What is the recorded prevalence of hypertension in this database?
 
-```text
-Your question -> Python agent <-> OpenAI model (internet)
-                     |
-                     | local MCP over stdio
-                     v
-              mcp_sqlite/server.py -> outputs/omop.sqlite (read-only)
+> Among Black male patients with hypertension, which drugs have the most recorded exposures?
+
+> Compare hypertension prevalence by gender, showing numerators and denominators.
+
+For the unchanged sample, the first question should return **76 / 250 = 30.4%**,
+based on all available records. Answers should use actual queries, explain
+assumptions, and label results as synthetic. To change the analyst's behavior,
+edit `AGENTS.md` and start a new chat.
+
+### Safety
+
+MCP exposes `list_tables`, `describe_table`, and `query`. The server enforces
+read-only access, blocks writes and external database attachment, and limits
+results to 500 rows / approximately 100 KB with a five-second query timeout.
+`AGENTS.md` guides behavior; it is **not a security sandbox** or an automatic
+privacy filter. Database results can be sent to the AI provider: use synthetic
+data only. Codex needs network access and is subject to your account's usage
+limits. A separate cloud/web session cannot access this local connection.
+
+## Checks and Troubleshooting
+
+Run R tests in the **R Console**:
+
+```r
+testthat::test_dir("tests")
 ```
 
-The agent runs on your computer and starts the existing MCP server as a child
-process. The SDK passes the tools to the model, executes its tool requests
-locally, and sends results back for the next reasoning step. It closes the
-server when finished. No public server, HTTP endpoint, database upload, Codex
-registration, or running RStudio session is needed. This uses
-[SDK-managed local MCP](https://developers.openai.com/api/docs/guides/agents/integrations-observability),
-not a remotely hosted MCP service.
-
-### Install the Optional Agent Dependencies
-
-Complete sections 1-4 to create the database. Install Python as described in
-section 8, but skip Codex/Node.js and registration if you only want this agent.
-From the project root in **PowerShell**:
+Run MCP tests in **PowerShell** (macOS/Linux: use `.venv-mcp/bin/python`):
 
 ```powershell
-# Only create this environment if you have not already created it in section 8.
-python -m venv .venv-mcp
-
-# Installs the agent SDK and the existing MCP server's requirements.
-.\.venv-mcp\Scripts\python.exe -m pip install -r examples/requirements-agent.txt
+.\.venv-mcp\Scripts\python.exe -m unittest discover -s mcp_sqlite -p test_server.py -v
 ```
 
-The agent is in [`examples/mcp_agent.py`](examples/mcp_agent.py). The R workflow
-does not depend on these additional packages. You do not need to start
-`server.py` yourself or change the MCP registration from section 8.
-
-### First Test Locally, Without a Key or API Charges
-
-```powershell
-.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --demo
-```
-
-This mode runs predefined SQL through the real MCP connection. It lists tables,
-inspects the three required schemas, and prints JSON containing the SQL, bound
-parameters, and results. **It does not call an AI model or interpret new questions.**
-Once dependencies and the database exist, this mode works without internet access.
-
-For the unchanged default mock data, expect:
-
-| Calculation | Result |
+| Problem | Fix |
 | --- | --- |
-| Recorded hypertension, all patients | 76 / 250 = 30.4% |
-| Recorded hypertension, Black male patients | 6 / 14 = 42.9% |
-| Black male hypertension cohort | 6 patients |
-| Most recorded drug in that cohort | Lisinopril: 5 exposures, 5 patients, 83.3% of the cohort |
+| Missing R package | Repeat `install.packages(...)` in the RStudio session you use. |
+| Missing file or `con` | Open `claude_test.Rproj` and run `source("run_me.R")`. |
+| `python` not found on Windows | Try `py -3 -m venv .venv-mcp`, or reinstall Python and reopen the terminal. |
+| `No module named mcp` | Install requirements using the same `.venv-mcp` Python shown above. |
+| MCP tools absent | Check `codex.cmd mcp get omop-sqlite`, reload servers, and start a new local project chat. |
+| Analyst instructions not applied | Confirm the project-root file is named `AGENTS.md`; start a new chat and ask which instructions are active. |
+| Database locked | Finish open write transactions in other clients and retry. |
 
-The cohort also has Metformin (2 exposures), Sertraline (2), and Albuterol (1).
-These are all drugs recorded for the cohort, not necessarily hypertension
-treatments. Drug percentages can sum to more than 100% because a patient can
-have multiple drugs. Edited data or a different random seed will change results.
-
-### Run the AI Agent
-
-For natural-language questions, you need an OpenAI Platform API key with access
-to the selected model and available API quota/billing. Follow the API key setup
-in the [official quickstart](https://developers.openai.com/api/docs/guides/agents/quickstart).
-The script does not use your Codex sign-in. Model calls can incur API charges;
-check your API account's limits before running it.
-
-Use a hidden prompt so the key is not stored in a script or PowerShell history:
-
-```powershell
-.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --ask-key
-```
-
-The key is held only in this Python process. Alternatively, the script reads an
-existing `OPENAI_API_KEY` environment variable. It does not load `.env` or
-`.Renviron` files automatically. Never paste a real key into source code, a
-README, a commit, or a chat message.
-
-By default, the agent asks the model to calculate the same prevalence and drug
-ranking as the demo. Unlike `--demo`, **the model chooses tools and writes its own
-SQL**. The script prints the executed MCP calls and the model's answer. Compare
-its numbers with the deterministic demo; generated SQL and explanations can
-still be wrong.
-
-Ask a different question:
-
-```powershell
-.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --ask-key --question "Calculate hypertension prevalence by gender. Show the numerator and denominator for every group."
-```
-
-The example defaults to
-[`gpt-4.1-mini`](https://developers.openai.com/api/docs/models/gpt-4.1-mini).
-Use `--model` or `OPENAI_MODEL` to select another tool-capable OpenAI model your
-API project can access. Each invocation is a new conversation; it does not
-remember a previous invocation.
-
-```powershell
-.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --ask-key --model gpt-4.1-mini --max-turns 12
-.\.venv-mcp\Scripts\python.exe examples/mcp_agent.py --help
-```
-
-`--max-turns` bounds model turns, not total dollars or exact tool-call count.
-The script also caps model output tokens per turn. Use `--db 'C:/path/to/example.sqlite'`
-for another compatible **synthetic** database; otherwise it locates this project's
-`outputs/omop.sqlite` relative to the script, independent of the terminal directory.
-
-### How to Adapt It
-
-The important pieces in `examples/mcp_agent.py` are:
-
-- `INSTRUCTIONS` defines the analyst's role, schema-discovery steps, counting rules, and interpretation limits.
-- `open_server()` launches the existing read-only server with the same Python executable and allows only its three database tools.
-- `run_agent()` constructs `Agent(..., mcp_servers=[server])` and calls `Runner.run(...)` to handle the model/tool loop.
-- `DEFAULT_QUESTION` is the question used when `--question` is omitted.
-- `run_demo()` and the reference SQL provide a deterministic comparison, not the live agent's query planner.
-
-To create a different analyst, change the instructions and default question,
-or import and reuse `open_server()` and `run_agent()` in your own application.
-For repeatable production calculations, prefer reviewed SQL or dedicated
-aggregate tools rather than relying on unconstrained model-generated SQL.
-
-### Privacy, Permissions, and Testing
-
-In live mode, your question, tool schemas, generated SQL, and returned query
-results are sent to OpenAI. Keeping SQLite local does **not** keep those results
-local. Use only the synthetic teaching data with this example. Do not point it
-at real patient records, credentials, or other confidential data without the
-necessary approvals and data controls.
-
-SDK tracing is disabled and model response storage is requested off
-(`store=False`); these are not a guarantee of zero provider retention or no
-network transfer. The API key is not passed to the MCP child process. Read-only
-access is enforced by the existing server, not just the agent prompt. The agent
-has no shell or write tools, but read-only SQL is **not** an aggregate-only or
-patient-level privacy boundary. Instructions to prefer aggregates are guidance,
-not a technical access restriction.
-
-Run the optional example's tests without an API key:
-
-```powershell
-.\.venv-mcp\Scripts\python.exe -m unittest discover -s examples -p test_mcp_agent.py -v
-```
-
-Tests use temporary databases and a scripted model with the real SDK agent loop
-and MCP subprocess. They check duplicate diagnoses, prevalence denominators,
-patients without drugs, empty cohorts, read-only access, missing keys, truncation,
-and the turn limit. They do not test a live model's answer quality or incur API
-charges, and they do not modify your generated database.
-
-On **macOS/Linux**, use these equivalents from the project root:
-
-```bash
-# Only create the environment if it does not already exist.
-python3 -m venv .venv-mcp
-.venv-mcp/bin/python -m pip install -r examples/requirements-agent.txt
-.venv-mcp/bin/python examples/mcp_agent.py --demo
-.venv-mcp/bin/python examples/mcp_agent.py --ask-key
-.venv-mcp/bin/python -m unittest discover -s examples -p test_mcp_agent.py -v
-```
-
-## Troubleshooting
-
-| Symptom | What to check |
-| --- | --- |
-| `cannot open file 'R/config.R'` or `run_me.R` | Open `claude_test.Rproj` or change to the project root. Verify `file.exists("run_me.R")` in R. |
-| `there is no package called ...` | Repeat section 3 in the same R installation used by RStudio. Inspect `R.version.string` and `.libPaths()` if multiple R versions are installed. |
-| Package installation asks for a compiler on Windows | Use available binary packages. If source compilation is necessary, follow the package's build requirements for your R version. |
-| `object 'con' not found` or invalid connection | Run `source("run_me.R")` in the current RStudio console, even if you already ran it in a terminal. |
-| Database file missing in a fresh download | This is expected. Run section 4; the database is generated, not checked into Git. |
-| Permission denied creating the database | Extract the project into a writable folder in your user account, then reopen its R project. |
-| `database is locked` | Finish open write transactions in other database clients and retry. |
-| `Rscript`, `python`, `npm`, or `codex` not recognized | Install the relevant optional/required software, reopen the terminal, and check its executable path. RStudio does not require `Rscript` on `PATH`. |
-| `No module named mcp` | Run pip with `.venv-mcp/Scripts/python.exe` as shown above; installing into a different Python does not configure this environment. |
-| MCP server says database not found | Create it with `source("run_me.R")`; rerun registration if the project moved. |
-| MCP registered but tools are absent | Confirm `codex mcp get omop-sqlite`, restart MCP servers, and try a new local session. |
-| MCP returns `not authorized` for a write | Access is intentionally read-only. Use the R/DBI connection for edits. |
-| Agent says to install optional dependencies or `No module named agents` | Install `examples/requirements-agent.txt` with the same `.venv-mcp` Python used to run the script. |
-| Agent says `No OPENAI_API_KEY` | Use `--ask-key` in an interactive terminal, or use `--demo` without a key. Codex sign-in is not an API key. |
-| Agent says `OpenAI request failed` | Check the key's API project, billing/quota, model access, and network connection. Try `--demo` to isolate database/MCP issues from API issues. |
-| Agent reaches `--max-turns` | Ask a narrower question or deliberately increase the limit; additional turns may cost more. |
-
-If Windows PowerShell blocks `register.ps1` or the npm-provided `codex.ps1`,
-you can use the npm command shim and register directly from the project root:
-
-```powershell
-codex.cmd --version
-codex.cmd mcp add omop-sqlite -- "$PWD\.venv-mcp\Scripts\python.exe" "$PWD\mcp_sqlite\server.py" --db "$PWD\outputs\omop.sqlite"
-codex.cmd mcp get omop-sqlite
-```
-
-Warnings such as an R package being built under a newer R release are distinct
-from test failures. Check that commands finish successfully and the tests
-report no failures; update/reinstall the affected package if necessary.
-
-## Files and Reproducibility
+## Project Files
 
 | Path | Purpose |
 | --- | --- |
-| `claude_test.Rproj` | Opens the project in RStudio. |
-| `run_me.R` | Initializes the database, runs tests, and leaves `con` open. |
-| `sandbox_for_the_dummy.R` | Editable SQL and hypertension/drug-use example. |
-| `run_analysis.R` | Produces summary tables and CSV exports. |
-| `R/config.R` | Database location and R package checks. |
-| `R/database_setup.R` | Table definitions, mock generation, and initialization. |
-| `R/omop_schema.R` | Queryable dbplyr table wrappers. |
-| `R/analytics.R` | Prevalence and utilization calculations. |
-| `db/connection.R` | SQLite connection helpers. |
-| `tests/` | R tests using isolated databases. |
-| `mcp_sqlite/` | Optional Python MCP server, tests, and registration script. |
-| `examples/mcp_agent.py` | Standalone MCP agent and no-key, fixed-query demo. |
-| `examples/requirements-agent.txt` | Optional agent SDK and MCP dependencies. |
-| `examples/test_mcp_agent.py` | Agent/MCP integration and calculation tests; no API calls. |
-| `outputs/` | Generated database and summary files, ignored by Git. |
-| `.venv-mcp/` | Generated Python environment, ignored by Git. |
+| `AGENTS.md` | Conversational analyst instructions. |
+| `run_me.R` | Create/reopen the database, seed if empty, and run tests. |
+| `sandbox_for_the_dummy.R` | Editable DBI queries and cohort/drug example. |
+| `run_analysis.R` | Export summary CSV files. |
+| `R/`, `db/`, `tests/` | Schema, synthetic data, connections, analysis, and R tests. |
+| `mcp_sqlite/` | Read-only MCP server, pinned requirements, connection check, and tests. |
 
-The default mock seed is `20260318`. To deliberately replace all existing
-example rows with freshly generated data, run this in R after `run_me.R`:
-
-```r
-populate_mock_data(con, seed = 20260318, n_patients = 250, overwrite = TRUE)
-```
-
-This deletes and replaces the example rows, including your edits; ordinary
-runs of `run_me.R` do not do this. Keep a separate copy of the SQLite file
-if you want to preserve edits before regenerating.
-
-R dependencies are listed in `DESCRIPTION` but are not version-locked.
-The MCP SDK version is pinned in `mcp_sqlite/requirements.txt`; the optional
-Agents SDK is pinned in `examples/requirements-agent.txt`. Transitive dependencies
-are resolved during installation. `.Renviron` and `.env` files are ignored by
-Git and are not needed for the R/SQLite example or the local agent demo. Live
-agent mode needs an API key supplied at runtime, never committed to the repository.
+`outputs/`, `.venv-mcp/`, and local secrets (`.Renviron`, `.env*`) are ignored
+by Git. No credentials belong in commits. The mock seed is `20260318`; ordinary
+runs preserve edits. Tested on Windows with R 4.4.1 and Python 3.12.
 
