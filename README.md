@@ -1,4 +1,4 @@
-# OMOP Clinical Data Example
+# OMOP Clinical Data Explorer
 
 Learn SQL and database analysis with 250 synthetic patients in a local SQLite
 database. Use RStudio for SQL, or chat with Codex as a read-only data analyst.
@@ -7,7 +7,7 @@ This is a simplified OMOP-style teaching dataset, not clinical evidence.
 ## 1. Install and Run
 
 1. Install [R](https://cran.r-project.org/) and then [RStudio Desktop](https://docs.posit.co/ide/user/download.html).
-2. Download or clone [this repository](https://github.com/mkeskisa/claude_test), extract it into a writable folder, and open `claude_test.Rproj` in RStudio.
+2. Download or clone [this repository](https://github.com/mkeskisa/omop-clinical-data-explorer), extract it into a writable folder, and open `omop-clinical-data-explorer.Rproj` in RStudio.
 3. Run the following in the **R Console**, not the Terminal:
 
 ```r
@@ -87,7 +87,7 @@ Run in **PowerShell** from the project folder, not in the R Console:
 npm.cmd install -g @openai/codex
 
 # Replace this path with your project folder.
-Set-Location 'C:\path\to\claude_test'
+Set-Location 'C:\path\to\omop-clinical-data-explorer'
 python -m venv .venv-mcp
 .\.venv-mcp\Scripts\python.exe -m pip install -r mcp_sqlite/requirements.txt
 .\.venv-mcp\Scripts\python.exe mcp_sqlite/check_connection.py
@@ -156,7 +156,7 @@ Run MCP tests in **PowerShell** (macOS/Linux: use `.venv-mcp/bin/python`):
 | Problem | Fix |
 | --- | --- |
 | Missing R package | Repeat `install.packages(...)` in the RStudio session you use. |
-| Missing file or `con` | Open `claude_test.Rproj` and run `source("run_me.R")`. |
+| Missing file or `con` | Open `omop-clinical-data-explorer.Rproj` and run `source("run_me.R")`. |
 | `python` not found on Windows | Try `py -3 -m venv .venv-mcp`, or reinstall Python and reopen the terminal. |
 | `No module named mcp` | Install requirements using the same `.venv-mcp` Python shown above. |
 | MCP tools absent | Check `codex.cmd mcp get omop-sqlite`, reload servers, and start a new local project chat. |
@@ -167,6 +167,7 @@ Run MCP tests in **PowerShell** (macOS/Linux: use `.venv-mcp/bin/python`):
 
 | Path | Purpose |
 | --- | --- |
+| `omop-clinical-data-explorer.Rproj` | Opens the project in RStudio. |
 | `AGENTS.md` | Conversational analyst instructions. |
 | `run_me.R` | Create/reopen the database, seed if empty, and run tests. |
 | `sandbox_for_the_dummy.R` | Editable DBI queries and cohort/drug example. |

@@ -1,8 +1,9 @@
-Package: omop-dbplyr-test
-Title: OMOP Database Testing with dbplyr
+Package: omopClinicalDataExplorer
+Title: OMOP Clinical Data Explorer
 Version: 0.1.0
 Authors@R: person("Developer", "Name", email = "developer@example.com", role = c("aut", "cre"))
-Description: Test dbplyr package functionality with OMOP Common Data Model.
+Description: Explore synthetic OMOP-style clinical data in SQLite using R,
+    SQL, dbplyr, and a read-only MCP connection for conversational analysis.
 License: MIT
 Imports: DBI, RSQLite, dbplyr, dplyr, testthat
 Suggests: testthat
